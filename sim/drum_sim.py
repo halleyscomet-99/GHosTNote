@@ -61,12 +61,15 @@ def use_model(version="v2", side="right"):
     STRIKE = [3, WRIST]
 
 
-def build(head_k=3.0e4, head_b=8.0, contact_j6=0.20, dt=0.0005, contact_q=None, pad_raise=0.0, as_spec=False):
+def build(head_k=3.0e4, head_b=8.0, contact_j6=0.20, dt=0.0005, contact_q=None, pad_raise=0.0, as_spec=False,
+          kit="pad"):
     """Model with torque motors on every joint, a stick in the right gripper and a pad under its tip.
 
     The head is placed where the tip is at contact_q (default: POSE with J6 = contact_j6), raised by
     pad_raise metres (> 0: the commanded path goes that far "through" the head, like aiming below it).
-    as_spec: return the MjSpec instead of the compiled model (to write it out as XML)."""
+    as_spec: return the MjSpec instead of the compiled model (to write it out as XML).
+    kit: "pad" (a single 13 cm pad on a stand, as in the W1-W3 sims) or "ded70" (the Donner DED-70 kit around
+    a 6.5" snare, sim/ded70.py)."""
     spec = mujoco.MjSpec.from_file(str(MJCF))
     spec.option.timestep = dt
     for act in list(spec.actuators):
@@ -91,6 +94,13 @@ def build(head_k=3.0e4, head_b=8.0, contact_j6=0.20, dt=0.0005, contact_q=None, 
     mujoco.mj_forward(m, d)
     tip = d.site_xpos[m.site("tip").id].copy()
     tip[2] += pad_raise
+    if kit == "ded70":
+        from ded70 import add_ded70
+        add_ded70(spec, [tip[0], tip[1], tip[2] - STICK_R], head_solref=[-head_k, -head_b])
+        spec.worldbody.add_geom(type=mujoco.mjtGeom.mjGEOM_PLANE, size=[2, 2, 0.1], pos=[0, 0, -0.5],
+                                rgba=[0.3, 0.32, 0.35, 1], contype=0, conaffinity=0)
+        spec.worldbody.add_light(pos=[0.5, -0.5, 1.0], dir=[-0.4, 0.4, -1], diffuse=[0.8, 0.8, 0.8])
+        return spec if as_spec else spec.compile()
     pad = spec.worldbody.add_body(name="pad", pos=[tip[0], tip[1], tip[2] - STICK_R - 0.01])
     # direct stiffness/damping contact (solref < 0): head_k N/m, head_b N s/m
     pad.add_geom(name="head", type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[0.13, 0.01, 0],

@@ -3,7 +3,8 @@
   .venv/bin/python ros2_ws/src/ghost_description/scripts/export_mjcf.py
 
 Writes mujoco/<name>.xml (meshes stay in openarm_mujoco, referenced by absolute path):
-  scene_v1_left[_stick].xml   physics for the sim hardware: both arms, pad under the left tip, stick geom;
+  scene_v1_left[_stick].xml   physics for the sim hardware: both arms, the Donner DED-70 kit with its snare
+                              under the left tip (sim/ded70.py), stick geom;
                               the left arm's joints get the real arm's identified Coulomb friction
                               (data/robot/gravity_check_v1_left.json) and almost no viscous damping, so the
                               twin needs the same feedforward as the real arm
@@ -45,7 +46,7 @@ def main(model="v1", side="left"):
         contact[ds.WRIST] = ds.WRIST_DOWN * 0.20
         if side == "left":
             contact *= [-1, -1, -1, 1, -1, -1, -1]
-        scene = ds.build(contact_q=contact, as_spec=True)
+        scene = ds.build(contact_q=contact, as_spec=True, kit="ded70")
         if not stick:            # drum_sim always adds the stick geom; without a stick it must not collide
             g = scene.geom("stick")
             g.contype, g.conaffinity, g.rgba = 0, 0, [0, 0, 0, 0]

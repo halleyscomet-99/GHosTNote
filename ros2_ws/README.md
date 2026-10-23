@@ -26,7 +26,7 @@ Each left-arm joint `openarm_left_jointN` exports the full Damiao MIT command, s
 State interfaces: `position`, `velocity`, `effort` (measured torque on the real arm, applied torque in the twin). The gripper is the GPIO `openarm_left_gripper` (motor radians: `position`, `stiffness`, `damping`; state `position`, `effort`). A joint without a valid command gets pure damping. The right arm and the fingers come from mock hardware and only provide TF. ros2_control's own limit enforcement is off for these interfaces (`<limits enable="false"/>`); the controller and the motors enforce theirs.
 
 - **OpenArmMITSystem** — params `can_interface` (can_left), `can_fd` (false), `prefix`, `max_rest_deg` (25: refuses to configure if a joint rests further from zero). Reports an error on CAN bus-off. Deactivation damps for 1.5 s, then disables the motors.
-- **MujocoMITSystem** — param `model`. Applies `tau = clamp(kp (q_des - q) + kd (dq_des - dq) + tau_ff, ±peak)` every 0.5 ms physics step. The scene carries the real arm's identified Coulomb friction. Service `/ghost_left_arm/set_pad` (std_srvs/SetBool) turns pad collisions on; `run` does this once the arm is at the drumming pose.
+- **MujocoMITSystem** — param `model`. Applies `tau = clamp(kp (q_des - q) + kd (dq_des - dq) + tau_ff, ±peak)` every 0.5 ms physics step. The scene carries the real arm's identified Coulomb friction. The scene holds the DED-70 kit (`sim/ded70.py`); service `/ghost_left_arm/set_pad` (std_srvs/SetBool) turns the whole kit's collisions on, which `run` does once the arm is at the drumming pose.
 
 ## Controller
 

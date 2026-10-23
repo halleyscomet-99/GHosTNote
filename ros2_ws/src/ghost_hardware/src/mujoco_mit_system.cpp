@@ -5,8 +5,9 @@
 //   tau = clamp(kp (q_des - q) + kd (dq_des - dq) + tau_ff, +-peak)
 // recomputed every physics step, like the motor's on-board PD. Joints this system does not own (right arm,
 // fingers) are held at zero with a stiff PD + gravity, as in drum_sim.simulate.
-// The pad only collides once switched on (service <component>/set_pad, std_srvs/SetBool), like the real one
-// that is placed after the arm reaches the drumming pose: otherwise the 40 cm stick sweeps through it.
+// The drum (the snare "pad" or the whole DED-70 kit: bodies named pad* / ded70*) only collides once switched
+// on (service <component>/set_pad, std_srvs/SetBool), like the real one that is placed after the arm reaches
+// the drumming pose: otherwise the 40 cm stick sweeps through it.
 // Parameters: model (path to the scene XML), prefix (openarm_left_), pad_enabled (false).
 #include <mujoco/mujoco.h>
 
@@ -65,12 +66,14 @@ public:
         others_.push_back({m_->jnt_qposadr[j], m_->jnt_dofadr[j], a});
       }
     }
-    head_ = mj_name2id(m_, mjOBJ_GEOM, "head");
-    if (head_ >= 0) {
-      head_type_ = {m_->geom_contype[head_], m_->geom_conaffinity[head_]};
-      pad_req_ = param(info, "pad_enabled", "false") == "true";
-      apply_pad();
+    for (int g = 0; g < m_->ngeom; ++g) {
+      const std::string body = mj_id2name(m_, mjOBJ_BODY, m_->geom_bodyid[g]) ? mj_id2name(m_, mjOBJ_BODY, m_->geom_bodyid[g]) : "";
+      if ((body.rfind("pad", 0) == 0 || body.rfind("ded70", 0) == 0) && (m_->geom_contype[g] || m_->geom_conaffinity[g])) {
+        drum_.push_back({g, m_->geom_contype[g], m_->geom_conaffinity[g]});
+      }
     }
+    pad_req_ = param(info, "pad_enabled", "false") == "true";
+    apply_pad();
     mj_forward(m_, d_);
     RCLCPP_INFO(get_logger(), "MuJoCo %s: %ld dof, dt %.4f s", path.c_str(), static_cast<long>(m_->nv), m_->opt.timestep);
     return CallbackReturn::SUCCESS;
@@ -78,12 +81,12 @@ public:
 
   CallbackReturn on_configure(const rclcpp_lifecycle::State &) override
   {
-    if (get_node() && head_ >= 0) {
+    if (get_node() && !drum_.empty()) {
       pad_srv_ = get_node()->create_service<std_srvs::srv::SetBool>(
         "~/set_pad", [this](const std_srvs::srv::SetBool::Request::SharedPtr q, std_srvs::srv::SetBool::Response::SharedPtr r) {
           pad_req_ = q->data;
           r->success = true;
-          r->message = q->data ? "pad collides" : "pad off";
+          r->message = q->data ? "drum collides" : "drum off";
         });
     }
     copy_states();        // the state interfaces exist only after on_init
@@ -130,11 +133,13 @@ private:
 
   void apply_pad()
   {
-    if (head_ < 0 || pad_req_ == pad_on_) return;
+    if (drum_.empty() || pad_req_ == pad_on_) return;
     pad_on_ = pad_req_;
-    m_->geom_contype[head_] = pad_on_ ? head_type_.first : 0;
-    m_->geom_conaffinity[head_] = pad_on_ ? head_type_.second : 0;
-    RCLCPP_INFO(get_logger(), "pad %s", pad_on_ ? "on (collides)" : "off");
+    for (const auto & g : drum_) {
+      m_->geom_contype[g.id] = pad_on_ ? g.contype : 0;
+      m_->geom_conaffinity[g.id] = pad_on_ ? g.conaffinity : 0;
+    }
+    RCLCPP_INFO(get_logger(), "drum (%zu geoms) %s", drum_.size(), pad_on_ ? "on (collides)" : "off");
   }
 
   void copy_states()
@@ -158,8 +163,8 @@ private:
   std::array<int, N_ARM> qadr_{}, vadr_{}, act_{};
   std::array<double, N_ARM> tau_{};
   std::vector<Other> others_;
-  int head_ = -1;
-  std::pair<int, int> head_type_{1, 1};
+  struct DrumGeom { int id, contype, conaffinity; };
+  std::vector<DrumGeom> drum_;
   std::atomic<bool> pad_req_{false};
   bool pad_on_ = true;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pad_srv_;
