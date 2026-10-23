@@ -1,6 +1,6 @@
 """Export the MuJoCo models the ROS 2 stack loads, built by sim/drum_sim.py so ROS and the Python sim match.
 
-  .venv/bin/python ros2_ws/src/ghost_description/scripts/export_mjcf.py
+  .venv/bin/python ros2_ws/src/ghost_description/scripts/export_mjcf.py [--layout sim/ded70_layout.yaml]
 
 Writes mujoco/<name>.xml (meshes stay in openarm_mujoco, referenced by absolute path):
   scene_v1_left[_stick].xml   physics for the sim hardware: both arms, the Donner DED-70 kit with its snare
@@ -11,15 +11,18 @@ Writes mujoco/<name>.xml (meshes stay in openarm_mujoco, referenced by absolute 
   ff_v1_left[_stick].xml      feedforward for ghost_controller: no contacts, no joint limits, no damping or
                               frictionloss (rigid-body gravity + inertia only, exactly sim2real.Model)
 """
+import argparse
 import json
 import sys
 from pathlib import Path
 
 import mujoco
+import numpy as np
 
 GHOST = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(GHOST / "sim"))
 import drum_sim as ds  # noqa: E402
+import ded70  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "mujoco"
 
@@ -29,8 +32,9 @@ FRIC_MAX = [2.0, 2.0, 1.5, 1.5, 0.5, 0.5, 0.5]     # as robot/sim2real.py
 DAMPING = 0.05                                     # N m s / rad, instead of the MJCF's guessed 0.9-1.0
 
 
-def main(model="v1", side="left"):
+def main(model="v1", side="left", layout=None):
     OUT.mkdir(exist_ok=True)
+    kit_layout = ded70.load_layout(layout)
     fric = [0.0] * 7
     if CHECK.exists():
         fric = [min(max(f, 0.0), m) for f, m in zip(json.load(open(CHECK)).get("friction", fric), FRIC_MAX)]
@@ -46,7 +50,7 @@ def main(model="v1", side="left"):
         contact[ds.WRIST] = ds.WRIST_DOWN * 0.20
         if side == "left":
             contact *= [-1, -1, -1, 1, -1, -1, -1]
-        scene = ds.build(contact_q=contact, as_spec=True, kit="ded70")
+        scene = ds.build(contact_q=contact, as_spec=True, kit="ded70", kit_layout=kit_layout)
         if not stick:            # drum_sim always adds the stick geom; without a stick it must not collide
             g = scene.geom("stick")
             g.contype, g.conaffinity, g.rgba = 0, 0, [0, 0, 0, 0]
@@ -63,8 +67,26 @@ def main(model="v1", side="left"):
             path.write_text(spec.to_xml())
             m = mujoco.MjModel.from_xml_path(str(path))         # round trip: loads from anywhere
             print(f"{path.name}: nq {m.nq}, nu {m.nu}, dt {m.opt.timestep}")
+            if name == "scene" and stick:
+                report_miss(m, contact)
     print(f"written to {OUT}")
 
 
+def report_miss(m, contact):
+    """Where the planned stroke lands (stick tip at the contact pose) vs the snare head's top centre."""
+    d = mujoco.MjData(m)
+    d.qpos[ds.arm_idx(m)[0]] = contact
+    mujoco.mj_forward(m, d)
+    tip = d.site_xpos[m.site("tip").id]
+    top = d.xpos[m.body("pad").id]
+    off = tip - top
+    r = np.hypot(off[0], off[1])
+    print(f"snare top {np.round(top, 3).tolist()}; stroke lands {100 * r:.1f} cm from its centre, "
+          f"{100 * (off[2] - ds.STICK_R):+.1f} cm above the head"
+          + ("   <-- misses the 6.5\" head: move the snare or change the drumming pose" if r > ded70.PAD_R - 0.02 else ""))
+
+
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--layout", default=None, help="kit layout YAML (default sim/ded70_layout.yaml)")
+    main(layout=ap.parse_args().layout)

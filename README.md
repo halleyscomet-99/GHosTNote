@@ -26,7 +26,7 @@ run (strokes, k sweeps) / imu_teleop (whole-arm teleop) ────┤  traject
 | `ros2_ws/src/ghost_sim2real` | `run goto / stroke / contact` (strokes, interleaved k sweeps, MIDI + wrist-rebound scoring, real-vs-sim plots), `twin_viewer` |
 | `ros2_ws/src/ghost_teleop` | `myo_bridge` (armbands -> ROS topics), `imu_teleop` (two-Myo whole-arm teleop) |
 | `sim/drum_sim.py` | MuJoCo drumming model and stroke plan (the source of every pose and trajectory) |
-| `sim/ded70.py` | Donner DED-70 kit for the twin: parametric model from the product spec (four 6.5" mesh pads, three 9" rubber cymbals, kick pedal, tube rack), placed around the snare the robot plays |
+| `sim/ded70.py`, `sim/ded70_layout.yaml` | Donner DED-70 kit for the twin and RViz: parametric model from the product spec (four 6.5" mesh pads, three 9" rubber cymbals, tube rack; the kick pedal is left out); where each piece sits and how its face is tilted is in the layout file |
 | `robot/` | Python tools the ROS nodes reuse: `sim2real.py` (control law, scoring, gravity / friction check), `arm_teleop.py` (IMU calibration + IK), `arm_bringup.py` (motor bring-up), `udev/` (fixed CAN names) |
 | `scripts/` | Myo pipeline: `live_stiffness.py` (EMG -> co-contraction -> k), `calibrate.py` (MVC), `new_session.py`, `myo_scan.py` |
 | `data/robot/gravity_check_v1_left.json` | Identified gravity scale and Coulomb friction of our left arm |
@@ -76,7 +76,7 @@ ros2 run ghost_sim2real run stroke --slow 4                                     
 ros2 run ghost_sim2real run stroke --slow 1 --ks 1,0.5,0.2,0.08 --n 3 --period 2  # interleaved stiffness sweep onto the pad
 ```
 
-The twin viewer draws the arm as measured, with the controller's reference as a translucent blue arm, playing the DED-70 kit. The kit only collides once the arm is at the drumming pose (`run` switches it on through `/ghost_left_arm/set_pad`). Logs and plots go to `data/robot/`.
+The twin viewer draws the arm as measured, with the controller's reference as a translucent blue arm, playing the DED-70 kit; RViz shows the same kit (`/ghost/kit` markers). The kit only collides once the arm is at the drumming pose (`run` switches it on through `/ghost_left_arm/set_pad`). Logs and plots go to `data/robot/`.
 
 ### 2. Real arm
 
@@ -112,6 +112,25 @@ ros2 run ghost_sim2real run stroke --teleop --n 20 --slow 1 --period 2   # or: p
 ```
 `teleop:=true` makes stale EMG (0.5 s) fall back to the stiff default.
 
+## Changing the kit layout
+
+Everything about the kit's placement is in `sim/ded70_layout.yaml` (robot frame: origin at the robot base, x toward the kit, y to the robot's left, z up; metres and degrees):
+
+| To change | Edit |
+|---|---|
+| where the snare is (= robot vs kit) | `snare.position`: `auto` puts it under the stick tip at the drumming pose; `[x, y, z]` is a measured position of the head's top centre |
+| how a face is angled | `tilt_deg` (lean toward the robot) and `rotate_deg` (turns that lean about the vertical) of the snare, any pad or cymbal |
+| the whole kit's heading | `kit_rotate_deg` (about the snare) |
+| a tom or cymbal | its `offset` from the snare, in the kit frame |
+| rack, floor | `rack`, `floor_z`, `robot_stand` |
+
+Then regenerate and relaunch (no rebuild needed):
+```bash
+.venv/bin/python ros2_ws/src/ghost_description/scripts/export_mjcf.py
+ros2 launch ghost_bringup ghost.launch.xml stick:=true viewer:=true      # MuJoCo + RViz show the new layout
+```
+The export prints where the planned stroke lands on the snare (e.g. `stroke lands 4.9 cm from its centre`) and warns when it misses the 6.5" head. The stroke itself comes from the drumming pose in `sim/drum_sim.py` (`POSE`, `stroke_plan`), so a snare moved far from `auto` also needs that pose changed.
+
 ## Results so far
 
 - Real arm (Python path, `robot/sim2real.py`): tracking at full stroke speed 0.6–0.7 deg (elbow) and 1.1 deg (wrist). On the pad, the wrist rebound falls monotonically with stiffness: +1.26, +1.02, +0.68, +0.41 rad/s at k = 0.08, 0.2, 0.5, 1 (8 interleaved strokes each, sd <= 0.08). MIDI velocity does not change with k.
@@ -121,6 +140,6 @@ ros2 run ghost_sim2real run stroke --teleop --n 20 --slow 1 --period 2   # or: p
 
 - The ROS 2 real-arm plugin has not run on the robot yet (the Python path has).
 - The twin's pad contact is not identified: its rebound (~3.5 rad/s) does not depend on k yet.
-- No CAD of the DED-70 exists, so `sim/ded70.py` is built from the spec: pad and cymbal sizes are real, their positions are a typical layout. Measure your kit and edit `LAYOUT` (then rerun `export_mjcf.py`).
+- No CAD of the DED-70 exists, so `sim/ded70.py` is built from the spec: pad and cymbal sizes are real, their positions are a typical layout until you measure yours (see "Changing the kit layout").
 - The Myo cannot see the wrist; in whole-arm teleop J6 / J7 hold `--wrist`.
 - Real-time scheduling is off unless your user may use FIFO priority (ros2_control prints a warning).

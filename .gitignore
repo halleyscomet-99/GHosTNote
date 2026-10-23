@@ -16,4 +16,5 @@ ros2_ws/src/ghost_description/mujoco/*.xml
 data/robot/*
 !data/robot/gravity_check_v1_left.json
 data/raw/
+data/processed/
 sim/out/

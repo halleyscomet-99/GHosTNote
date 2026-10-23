@@ -38,6 +38,9 @@ the real arm gravity scale + friction, the sim friction only (its scene carries 
         args="ghost_controller -p $(var cfg)/ghost_controllers.yaml -p $(var cfg)/ff_v1_left$(var stick_tag).yaml -p $(var cfg)/calibration_v1_left_sim.yaml -p $(var cfg)/teleop_$(var teleop).yaml"/>
 
   <node pkg="rviz2" exec="rviz2" if="$(var rviz)" args="-d $(find-pkg-share ghost_bringup)/rviz/ghost.rviz"/>
+  <node pkg="ghost_sim2real" exec="kit_markers" if="$(var rviz)">
+    <param name="model" value="$(find-pkg-share ghost_description)/mujoco/scene_v1_left$(var stick_tag).xml"/>
+  </node>
   <node pkg="ghost_sim2real" exec="twin_viewer" if="$(var viewer)" output="screen">
     <param name="model" value="$(find-pkg-share ghost_description)/mujoco/scene_v1_left$(var stick_tag).xml"/>
   </node>

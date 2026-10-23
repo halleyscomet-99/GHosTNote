@@ -1,0 +1,38 @@
+# Donner DED-70 layout for the MuJoCo twin and RViz (sim/ded70.py).
+#
+# Frame: the robot's world frame. Origin at the robot base, x forward (toward the kit), y to the robot's left,
+# z up; metres and degrees. After editing:
+#   .venv/bin/python ros2_ws/src/ghost_description/scripts/export_mjcf.py     (then relaunch; no rebuild)
+#
+# Every drum and cymbal has
+#   offset:     its centre relative to the snare head's top centre, in the kit frame (x away from the robot)
+#   tilt_deg:   how far its face leans toward the robot (0 = flat)
+#   rotate_deg: turns the lean direction about the vertical axis (+ = counter-clockwise seen from above)
+
+snare:
+  # auto: under the stick tip at the robot's contact pose (where the planned stroke lands).
+  # [x, y, z]: the snare head's top centre in the robot frame. Use this for a measured real setup, and keep it
+  # where the stroke lands (export_mjcf.py reports the miss distance), or the robot plays the air.
+  position: auto
+  tilt_deg: 0
+  rotate_deg: 0
+
+kit_rotate_deg: 0        # turns the whole kit (rack, toms, cymbals) about the snare's vertical axis
+
+pads:                    # 6.5" mesh pads
+  tom1: {offset: [0.18, 0.08, 0.12], tilt_deg: 15, rotate_deg: 0}
+  tom2: {offset: [0.18, -0.18, 0.12], tilt_deg: 15, rotate_deg: 0}
+  tom3: {offset: [0.00, -0.42, -0.03], tilt_deg: 5, rotate_deg: 0}
+
+cymbals:                 # 9" rubber cymbals
+  hihat: {offset: [0.02, 0.28, 0.10], tilt_deg: 5, rotate_deg: 0}
+  crash: {offset: [0.24, 0.30, 0.32], tilt_deg: 15, rotate_deg: 0}
+  ride: {offset: [0.20, -0.50, 0.26], tilt_deg: 10, rotate_deg: 0}
+
+rack:                    # tube rack, relative to the snare in the kit frame
+  post_x: 0.30           # posts and front bar this far beyond the snare
+  post_y: [0.42, -0.64]  # left and right post
+  bar_dz: 0.0            # front bar height relative to the snare head
+
+floor_z: -0.5            # floor height (the robot stands on a platform of this height)
+robot_stand: true        # draw that platform
