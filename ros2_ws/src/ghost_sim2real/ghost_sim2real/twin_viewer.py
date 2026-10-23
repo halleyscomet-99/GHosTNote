@@ -2,6 +2,10 @@
 (/ghost_controller/command) as a translucent blue ghost. Works the same for the sim and the real arm.
 
   ros2 run ghost_sim2real twin_viewer --ros-args -p model:=<scene xml>     (ghost.launch.xml viewer:=true)
+
+The physics runs in the hardware plugin, not here: this window only draws /joint_states, so the viewer's
+own simulation controls (pause, reset, joint / actuator sliders) do not move the arm. The panels are still
+useful for rendering options, cameras and contact display; Tab / Shift+Tab hides them (param ui:=false).
 """
 import os
 import threading
@@ -23,6 +27,7 @@ class Twin(Node):
         super().__init__("twin_viewer")
         path = self.declare_parameter("model", "").value
         self.prefix = self.declare_parameter("ghost_prefix", "openarm_left").value
+        self.ui = self.declare_parameter("ui", True).value
         if not os.path.exists(path):
             raise SystemExit(f"twin_viewer: model {path!r} not found")
         self.m = mujoco.MjModel.from_xml_path(path)
@@ -48,7 +53,7 @@ class Twin(Node):
 
     def run(self):
         opt, pert = mujoco.MjvOption(), mujoco.MjvPerturb()
-        with mujoco.viewer.launch_passive(self.m, self.d, show_left_ui=False, show_right_ui=False) as v:
+        with mujoco.viewer.launch_passive(self.m, self.d, show_left_ui=self.ui, show_right_ui=self.ui) as v:
             v.cam.lookat[:] = [0.25, 0.1, 0.35]
             v.cam.distance, v.cam.azimuth, v.cam.elevation = 1.6, 200, -15
             while v.is_running() and rclpy.ok():

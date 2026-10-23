@@ -26,7 +26,7 @@ run (strokes, k sweeps) / imu_teleop (whole-arm teleop) ────┤  traject
 | `ros2_ws/src/ghost_sim2real` | `run goto / stroke / contact` (strokes, interleaved k sweeps, MIDI + wrist-rebound scoring, real-vs-sim plots), `twin_viewer` |
 | `ros2_ws/src/ghost_teleop` | `myo_bridge` (armbands -> ROS topics), `imu_teleop` (two-Myo whole-arm teleop) |
 | `sim/drum_sim.py` | MuJoCo drumming model and stroke plan (the source of every pose and trajectory) |
-| `sim/ded70.py` | Donner DED-70 kit for the twin: parametric model from the product spec (four 6.5" mesh pads, three 9" rubber cymbals, kick pad, tube rack), placed around the snare the robot plays |
+| `sim/ded70.py` | Donner DED-70 kit for the twin: parametric model from the product spec (four 6.5" mesh pads, three 9" rubber cymbals, kick pedal, tube rack), placed around the snare the robot plays |
 | `robot/` | Python tools the ROS nodes reuse: `sim2real.py` (control law, scoring, gravity / friction check), `arm_teleop.py` (IMU calibration + IK), `arm_bringup.py` (motor bring-up), `udev/` (fixed CAN names) |
 | `scripts/` | Myo pipeline: `live_stiffness.py` (EMG -> co-contraction -> k), `calibrate.py` (MVC), `new_session.py`, `myo_scan.py` |
 | `data/robot/gravity_check_v1_left.json` | Identified gravity scale and Coulomb friction of our left arm |

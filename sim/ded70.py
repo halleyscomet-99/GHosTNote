@@ -1,7 +1,7 @@
 """Donner DED-70 electronic drum kit as MuJoCo primitives, placed around the snare the robot plays.
 
 No CAD of the DED-70 is published, so this is a parametric model from the product spec: four 6.5" mesh pads
-(snare + three toms), three 9" rubber cymbals (hi-hat, crash, ride), a kick pad, and a tube rack. Positions
+(snare + three toms), three 9" rubber cymbals (hi-hat, crash, ride), a kick trigger pedal, and a tube rack. Positions
 relative to the snare are a typical kids' kit layout seen from the drummer (the robot faces +x, its left is
 +y); measure your kit and edit LAYOUT to match it. Only the snare's head ("head", body "pad") is scored;
 every other pad, cymbal and tube collides with the stick too.
@@ -91,8 +91,11 @@ def add_ded70(spec, snare_top, head_solref=(-3.0e4, -8.0), floor_z=-0.5):
     # the robot stands on a platform: its base is at z = 0, and a hanging 40 cm stick reaches ~0.32 m below it
     wb.add_geom(name="ded70_robot_stand", type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.18, 0.22, -floor_z / 2],
                 pos=[0, 0, floor_z / 2], rgba=[0.25, 0.25, 0.27, 1], contype=0, conaffinity=0)
-    kick = wb.add_body(name="ded70_kick", pos=[s[0] + 0.05, s[1] - 0.18, floor_z + 0.12],
-                       quat=[np.cos(np.pi / 4), 0, -np.sin(np.pi / 4), 0])           # face the drummer
-    _pad(kick, "ded70_kick_head", list(head_solref), solimp)
-    _tube(rack, [s[0] + 0.12, s[1] - 0.18, floor_z], [s[0] + 0.12, s[1] - 0.18, floor_z + 0.2])
+    # kick: a trigger pedal on the floor (no pad to hit), right of the snare as seen by the drummer
+    pedal = wb.add_body(name="ded70_kick_pedal", pos=[s[0] - 0.05, s[1] - 0.20, floor_z])
+    pedal.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.13, 0.05, 0.012], pos=[0, 0, 0.012],
+                   rgba=BLACK, contype=0, conaffinity=0)                                      # base plate
+    pedal.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.11, 0.04, 0.006], pos=[-0.01, 0, 0.05],
+                   quat=[np.cos(np.radians(-8)), 0, np.sin(np.radians(-8)), 0],
+                   rgba=SHELL, contype=0, conaffinity=0)                                      # footboard
     return snare
