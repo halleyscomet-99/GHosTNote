@@ -1,0 +1,3 @@
+ghost_controller:
+  ros__parameters:
+    ff_model: package://ghost_description/mujoco/ff_v1_left_stick.xml

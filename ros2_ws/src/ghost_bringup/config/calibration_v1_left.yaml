@@ -1,0 +1,6 @@
+# from gravity_check_v1_left.json (20261022_190235, stick True), all signs ok: True
+ghost_controller:
+  ros__parameters:
+    use_ff: true
+    g_scale: [0.835, 1.306, 1.000, 0.903, 1.000, 1.000, 0.763]
+    friction: [0.557, 0.167, 0.496, 1.481, 0.198, 0.125, 0.105]

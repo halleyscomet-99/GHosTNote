@@ -1,0 +1,17 @@
+# Python environment for GHosTNote (.venv at the repo root; the C++ plugins link its libmujoco)
+mujoco==3.16.0
+numpy==2.5.3
+scipy==1.18.1
+pandas==3.0.6
+matplotlib==3.11.2
+# Myo armband and drum pad (teleop, MIDI scoring)
+pyomyo==0.0.5
+pyserial==3.5
+mido==1.3.3
+python-rtmidi==1.5.8
+# so ROS 2 (rclpy, colcon) also runs inside the venv
+PyYAML==6.0.3
+lark==1.3.1
+catkin-pkg==1.1.1
+empy==3.3.4
+setuptools==84.2.1

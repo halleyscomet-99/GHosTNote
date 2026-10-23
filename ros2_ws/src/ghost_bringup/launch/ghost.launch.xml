@@ -1,0 +1,44 @@
+<!--
+GHOST OpenArm bring-up: one launch for the MuJoCo twin and the real left arm.
+
+  ros2 launch ghost_bringup ghost.launch.xml                                   # MuJoCo physics (default)
+  ros2 launch ghost_bringup ghost.launch.xml hardware_type:=real can:=can_left # the real left arm
+  ros2 launch ghost_bringup ghost.launch.xml stick:=true rviz:=false viewer:=true
+  ros2 launch ghost_bringup ghost.launch.xml teleop:=true                     # then ghost_teleop nodes
+
+Starts robot_state_publisher, the controller manager (250 Hz), joint_state_broadcaster and ghost_controller,
+plus RViz and / or the MuJoCo twin viewer. Both use the identified calibration (scripts/export_calibration.py):
+the real arm gravity scale + friction, the sim friction only (its scene carries the same friction).
+-->
+<launch>
+  <arg name="hardware_type" default="sim" description="sim (MuJoCo) | real"/>
+  <arg name="can" default="can_left"/>
+  <arg name="stick" default="false" description="drumstick in the gripper (model mass + sim geometry)"/>
+  <arg name="skip_rest_check" default="false"/>
+  <arg name="rviz" default="true"/>
+  <arg name="viewer" default="false" description="MuJoCo twin viewer of /joint_states"/>
+  <arg name="teleop" default="false" description="k from live EMG: stale k (0.5 s) falls back to stiff"/>
+
+  <let name="stick_tag" value="$(eval &quot;'_stick' if '$(var stick)' == 'true' else ''&quot;)"/>
+  <let name="robot_description" value="$(command 'xacro $(find-pkg-share ghost_description)/urdf/ghost.urdf.xacro hardware_type:=$(var hardware_type) can_interface:=$(var can) stick:=$(var stick) skip_rest_check:=$(var skip_rest_check)')"/>
+  <let name="cfg" value="$(find-pkg-share ghost_bringup)/config"/>
+
+  <node pkg="robot_state_publisher" exec="robot_state_publisher">
+    <param name="robot_description" value="$(var robot_description)" type="str"/>
+  </node>
+
+  <node pkg="controller_manager" exec="ros2_control_node" output="screen">
+    <param from="$(var cfg)/ghost_controllers.yaml"/>
+  </node>
+
+  <node pkg="controller_manager" exec="spawner" args="joint_state_broadcaster"/>
+  <node pkg="controller_manager" exec="spawner" if="$(eval &quot;'$(var hardware_type)' == 'real'&quot;)"
+        args="ghost_controller -p $(var cfg)/ghost_controllers.yaml -p $(var cfg)/ff_v1_left$(var stick_tag).yaml -p $(var cfg)/calibration_v1_left.yaml -p $(var cfg)/teleop_$(var teleop).yaml"/>
+  <node pkg="controller_manager" exec="spawner" unless="$(eval &quot;'$(var hardware_type)' == 'real'&quot;)"
+        args="ghost_controller -p $(var cfg)/ghost_controllers.yaml -p $(var cfg)/ff_v1_left$(var stick_tag).yaml -p $(var cfg)/calibration_v1_left_sim.yaml -p $(var cfg)/teleop_$(var teleop).yaml"/>
+
+  <node pkg="rviz2" exec="rviz2" if="$(var rviz)" args="-d $(find-pkg-share ghost_bringup)/rviz/ghost.rviz"/>
+  <node pkg="ghost_sim2real" exec="twin_viewer" if="$(var viewer)" output="screen">
+    <param name="model" value="$(find-pkg-share ghost_description)/mujoco/scene_v1_left$(var stick_tag).xml"/>
+  </node>
+</launch>

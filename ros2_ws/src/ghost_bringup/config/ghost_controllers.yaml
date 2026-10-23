@@ -1,0 +1,28 @@
+# GHOST ros2_control: 250 Hz, the rate robot/sim2real.py ran at.
+controller_manager:
+  ros__parameters:
+    update_rate: 250
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    ghost_controller:
+      type: ghost_controller/GhostImpedanceController
+
+ghost_controller:
+  ros__parameters:
+    joints: [openarm_left_joint1, openarm_left_joint2, openarm_left_joint3, openarm_left_joint4,
+             openarm_left_joint5, openarm_left_joint6, openarm_left_joint7]
+    gripper: openarm_left_gripper
+    # real arm defaults (openarm_zmq); k scales J4 and the wrist pitch J7 (v1.0)
+    kp: [70.0, 70.0, 70.0, 60.0, 10.0, 10.0, 10.0]
+    kd: [3.5, 3.0, 2.5, 2.5, 1.0, 0.8, 0.8]
+    tau_peak: [40.0, 40.0, 27.0, 27.0, 7.0, 7.0, 7.0]
+    stiff_joints: [3, 6]
+    kp_lo_frac: 0.08
+    k_topic: /ghost/k
+    k_default: 1.0
+    k_timeout: 0.0            # 0: the last k holds; teleop sets 0.5 (stale EMG -> k_default = stiff)
+    use_ff: true
+    vmax: [2.0, 2.0, 2.0, 3.0, 3.0, 3.0, 3.0]      # teleop stream: rad/s
+    amax: [15.0, 15.0, 15.0, 30.0, 30.0, 30.0, 30.0]  # rad/s^2
+    lowpass: 0.04
+    gripper_kp: 8.0

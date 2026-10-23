@@ -1,0 +1,10 @@
+<library path="ghost_hardware">
+  <class name="ghost_hardware/OpenArmMITSystem" type="ghost_hardware::OpenArmMITSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>Real OpenArm v1.0 arm over SocketCAN, full MIT command (kp, kd every cycle).</description>
+  </class>
+  <class name="ghost_hardware/MujocoMITSystem" type="ghost_hardware::MujocoMITSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>The same MIT interface simulated in MuJoCo (GHOST drum scene).</description>
+  </class>
+</library>

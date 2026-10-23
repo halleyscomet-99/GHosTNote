@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.egg-info/
+
+# colcon
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+# upstream packages cloned into the workspace (see ros2_ws/ghost.repos)
+ros2_ws/src/openarm_description/
+ros2_ws/src/openarm_can/
+# generated per machine by ghost_description/scripts/export_mjcf.py (absolute mesh paths)
+ros2_ws/src/ghost_description/mujoco/*.xml
+
+# run outputs; the identified calibration stays tracked
+data/robot/*
+!data/robot/gravity_check_v1_left.json
+data/raw/
+sim/out/

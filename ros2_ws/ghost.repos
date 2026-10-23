@@ -1,0 +1,11 @@
+# Upstream packages GHosTNote builds against:  cd ros2_ws && vcs import src < ghost.repos
+# (or clone the two repositories into ros2_ws/src by hand)
+repositories:
+  openarm_description:
+    type: git
+    url: https://github.com/enactic/openarm_description.git
+    version: 81fe64755f78777c9d55d7e5cc5a238a143f7950
+  openarm_can:
+    type: git
+    url: https://github.com/enactic/openarm_can.git
+    version: bfd4e52194aefe38389fa6e670be3738136facb9

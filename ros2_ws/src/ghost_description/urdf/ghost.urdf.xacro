@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!--
+GHOST: OpenArm v1.0 bimanual (enactic openarm_description) with the left arm driven through ghost_hardware.
+
+  xacro ghost.urdf.xacro hardware_type:=sim            MuJoCo physics (ghost_hardware/MujocoMITSystem)
+  xacro ghost.urdf.xacro hardware_type:=real can_interface:=can_left
+
+Every left-arm joint exports the full Damiao MIT command (position, velocity, effort = tau_ff, stiffness = kp,
+damping = kd), so a controller can change kp / kd every cycle. The gripper motor is a GPIO in motor radians.
+The right arm and the fingers come from mock hardware: they only give robot_state_publisher their TF.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghost_openarm">
+
+  <xacro:arg name="hardware_type" default="sim"/>
+  <xacro:arg name="can_interface" default="can_left"/>
+  <xacro:arg name="can_fd" default="false"/>
+  <xacro:arg name="stick" default="false"/>
+  <xacro:arg name="skip_rest_check" default="false"/>
+
+  <xacro:include filename="$(find openarm_description)/assets/robot/openarm_v1.0/urdf/robot/openarm_robot.xacro"/>
+  <xacro:property name="arm_cfg" value="$(find openarm_description)/assets/robot/openarm_v1.0/config/arm"/>
+  <xacro:property name="body_cfg" value="$(find openarm_description)/assets/robot/openarm_v1.0/config/body"/>
+  <xacro:property name="ee_cfg" value="$(find openarm_description)/assets/end_effector/parallel_link/config"/>
+
+  <xacro:openarm_robot
+    arm_type="v10" body_type="v10" ee_type="parallel_link"
+    joint_limits="${xacro.load_yaml(arm_cfg + '/joint_limits.yaml')}"
+    control_gains="${xacro.load_yaml(arm_cfg + '/control_gains.yaml')}"
+    inertials="${xacro.load_yaml(arm_cfg + '/inertials.yaml')}"
+    kinematics="${xacro.load_yaml(arm_cfg + '/kinematics.yaml')}"
+    kinematics_link="${xacro.load_yaml(arm_cfg + '/kinematics_link.yaml')}"
+    kinematics_offset="${xacro.load_yaml(arm_cfg + '/kinematics_offset.yaml')}"
+    body_inertials="${xacro.load_yaml(body_cfg + '/inertials.yaml')}"
+    body_kinematics="${xacro.load_yaml(body_cfg + '/kinematics.yaml')}"
+    body_kinematics_link="${xacro.load_yaml(body_cfg + '/kinematics_link.yaml')}"
+    ee_inertials="${xacro.load_yaml(ee_cfg + '/inertials.yaml')}"
+    ee_kinematics="${xacro.load_yaml(ee_cfg + '/kinematics.yaml')}"
+    ee_kinematics_link="${xacro.load_yaml(ee_cfg + '/kinematics_link.yaml')}"
+    ee_joints_limits="${xacro.load_yaml(ee_cfg + '/joint_limits.yaml')}"
+    ros2_control="false" bimanual="true" no_prefix="false"
+    arm_prefix="" body_prefix="" arm_connected_to="base" body_connected_to="world"
+    right_arm_base_xyz="0.0 -0.030 0.697" right_arm_base_rpy="1.5708 0 0"
+    left_arm_base_xyz="0.0 0.030 0.697" left_arm_base_rpy="-1.5708 0 0"/>
+
+  <xacro:macro name="mit_joint" params="name">
+    <!-- limits off: ros2_control would otherwise rewrite q / dq / tau_ff against the URDF limits (the real
+         arm rests at J4 ~ -2 deg, below the URDF's 0); ghost_controller and the motors enforce their own -->
+    <joint name="${name}">
+      <command_interface name="position"><limits enable="false"/></command_interface>
+      <command_interface name="velocity"><limits enable="false"/></command_interface>
+      <command_interface name="effort"><limits enable="false"/></command_interface>
+      <command_interface name="stiffness"><limits enable="false"/></command_interface>
+      <command_interface name="damping"><limits enable="false"/></command_interface>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="ghost_left_arm" type="system">
+    <hardware>
+      <xacro:if value="${'$(arg hardware_type)' == 'real'}">
+        <plugin>ghost_hardware/OpenArmMITSystem</plugin>
+        <param name="can_interface">$(arg can_interface)</param>
+        <param name="can_fd">$(arg can_fd)</param>
+        <param name="max_rest_deg">${-1.0 if '$(arg skip_rest_check)' == 'true' else 25.0}</param>
+      </xacro:if>
+      <xacro:if value="${'$(arg hardware_type)' == 'sim'}">
+        <plugin>ghost_hardware/MujocoMITSystem</plugin>
+        <param name="model">$(find ghost_description)/mujoco/scene_v1_left${'_stick' if '$(arg stick)' == 'true' else ''}.xml</param>
+      </xacro:if>
+      <param name="prefix">openarm_left_</param>
+    </hardware>
+    <xacro:mit_joint name="openarm_left_joint1"/>
+    <xacro:mit_joint name="openarm_left_joint2"/>
+    <xacro:mit_joint name="openarm_left_joint3"/>
+    <xacro:mit_joint name="openarm_left_joint4"/>
+    <xacro:mit_joint name="openarm_left_joint5"/>
+    <xacro:mit_joint name="openarm_left_joint6"/>
+    <xacro:mit_joint name="openarm_left_joint7"/>
+    <gpio name="openarm_left_gripper">
+      <command_interface name="position"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="effort"/>
+    </gpio>
+  </ros2_control>
+
+  <xacro:macro name="static_joint" params="name">
+    <joint name="${name}">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="ghost_static" type="system">
+    <hardware>
+      <plugin>mock_components/GenericSystem</plugin>
+    </hardware>
+    <xacro:static_joint name="openarm_right_joint1"/>
+    <xacro:static_joint name="openarm_right_joint2"/>
+    <xacro:static_joint name="openarm_right_joint3"/>
+    <xacro:static_joint name="openarm_right_joint4"/>
+    <xacro:static_joint name="openarm_right_joint5"/>
+    <xacro:static_joint name="openarm_right_joint6"/>
+    <xacro:static_joint name="openarm_right_joint7"/>
+    <xacro:static_joint name="openarm_left_finger_joint1"/>
+    <xacro:static_joint name="openarm_right_finger_joint1"/>
+  </ros2_control>
+
+</robot>

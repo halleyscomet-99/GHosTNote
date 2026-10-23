@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ghost_hardware</name>
+  <version>0.1.0</version>
+  <description>ros2_control systems for GHOST: the real OpenArm (openarm_can) and a MuJoCo twin, both taking the full Damiao MIT command per joint.</description>
+  <maintainer email="halleyscomet678@gmail.com">Halley Zhong</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>openarm_can</depend>
+  <depend>std_srvs</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

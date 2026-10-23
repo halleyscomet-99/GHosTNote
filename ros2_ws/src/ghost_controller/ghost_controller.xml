@@ -1,0 +1,6 @@
+<library path="ghost_controller">
+  <class name="ghost_controller/GhostImpedanceController" type="ghost_controller::GhostImpedanceController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>EMG-stiffness MIT impedance control with MuJoCo feedforward (GHOST sim2real law).</description>
+  </class>
+</library>

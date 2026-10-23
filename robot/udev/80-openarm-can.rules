@@ -1,0 +1,10 @@
+# OpenArm CAN adapters: fixed names by USB serial, brought up as classic CAN at 1 Mbit/s on plug-in.
+# can0 / can1 are numbered in plug-in order and swap after a re-plug; these names do not.
+# Install: sudo cp robot/udev/80-openarm-can.rules /etc/udev/rules.d/ && sudo udevadm control --reload
+#          then re-plug both adapters (or: sudo udevadm trigger --subsystem-match=net --action=add)
+# Find a serial: udevadm info -a -p /sys/class/net/can0 | grep -m1 'ATTRS{serial}'
+
+# left arm: CANable 2.0 (gs_usb)
+SUBSYSTEM=="net", ACTION=="add", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="606f", ATTRS{serial}=="006500525842500720333850", NAME="can_left", RUN+="/bin/sh -c '/sbin/ip link set can_left type can bitrate 1000000 restart-ms 100 && /sbin/ip link set can_left up'"
+# right arm: candleLight (gs_usb)
+SUBSYSTEM=="net", ACTION=="add", ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="606f", ATTRS{serial}=="2060358A4E45500F2", NAME="can_right", RUN+="/bin/sh -c '/sbin/ip link set can_right type can bitrate 1000000 restart-ms 100 && /sbin/ip link set can_right up'"
